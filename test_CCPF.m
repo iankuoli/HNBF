@@ -60,16 +60,23 @@ global matPrecNRecall
 % 6. LastFm360K    =>  M = 359349  , N = 292589 , NNZ = 17,559,486
 % 7. ML100KPos     =>  M = 943     , N = 1682   , NNZ = 67,331
 
+MODEL = "CCPF-HPF";
 env_type = {'OSX', 'Linux'};
-data_type = {'SmallToy', 'SmallToyML', 'ML50', 'MovieLens100K', 'MovieLens1M', 'LastFm2K', 'LastFm1K', 'LastFm360K_2K', 'LastFm360K', 'ML100KPos'};
+dataset = {'SmallToy', 'SmallToyML', 'ML50', ...
+           'MovieLens100K', 'MovieLens1M', 'MovieLens20M', ...
+           'LastFm1K', 'LastFm2K', 'LastFm360K', 'LastFm360K_2K', 'EchoNest',  ...
+           'ML100KPos', 'Jester2', 'EachMovie'};
+       
 ENV = env_type{1};
-DATA = data_type{5};
+DATA = dataset{9};      
 
-NUM_RUNS = 10;
+NUM_RUNS = 5;
 likelihood_step = 10;
 check_step = 5;
 
 ini_scale = 0.001;
+Ks = [20];
+topK = [5, 10, 15, 20, 50];
 switch DATA
     case 'SmallToy'
         MaxItr = 800;
@@ -97,104 +104,69 @@ switch DATA
                    0.3, 0.01, 0.01];
     case 'MovieLens100K'
         MaxItr = 400;
-        Ks = [20];
-        topK = [5, 10, 15, 20];
+        G_prior = [0.3, 0.3, 0.3, ...
+                   0.3, 0.3, 0.3, ...
+                   0.9, 0.1, 0.1, ...
+                   0.9, 0.1, 0.1];
+    case 'Jester2'
+        MaxItr = 400;
         G_prior = [0.3, 0.3, 0.3, ...
                    0.3, 0.3, 0.3, ...
                    0.9, 0.1, 0.1, ...
                    0.9, 0.1, 0.1];
     case 'MovieLens1M'
         MaxItr = 400;
-        Ks = [20];
-        topK = [5, 10, 15, 20];
+        G_prior = [0.3, 0.3, 0.3, ...
+                   0.3, 0.3, 0.3, ...
+                   0.9, 0.1, 0.1, ...
+                   0.9, 0.1, 0.1];
+    case 'MovieLens20M'
+        MaxItr = 400;
+        G_prior = [0.3, 0.3, 0.3, ...
+                   0.3, 0.3, 0.3, ...
+                   0.9, 0.1, 0.1, ...
+                   0.9, 0.1, 0.1];
+    case 'EachMovie'
+        MaxItr = 400;
         G_prior = [0.3, 0.3, 0.3, ...
                    0.3, 0.3, 0.3, ...
                    0.9, 0.1, 0.1, ...
                    0.9, 0.1, 0.1];
     case 'LastFm2K'
-        MaxItr = 100;
-        Ks = [20];
-        topK = [5, 10, 15, 20];
+        MaxItr = 200;
         G_prior = [0.3, 0.3, 0.3, ...
                    0.3, 0.3, 0.3, ...
                    1, 0.01*sqrt(K), 0.01, ...
                    1, 0.01*sqrt(K), 0.01];
     case 'LastFm1K'
         MaxItr = 400;
-        Ks = [20];
-        topK = [5, 10, 15, 20];
         G_prior = [0.3, 0.3, 0.3, ...
                    0.3, 0.3, 0.3, ...
                    1, 0.01*sqrt(K), 0.01, ...
                    1, 0.01*sqrt(K), 0.01];
     case 'LastFm360K'
         MaxItr = 400;
-        Ks = [20];
-        topK = [5, 10, 15, 20];
         G_prior = [0.3, 0.3, 0.3, ...
                    0.3, 0.3, 0.3, ...
-                   0.3, 0.01*sqrt(K), 0.01, ...
-                   0.3, 0.01*sqrt(K), 0.01];
+                   1, 0.01*sqrt(K), 0.01, ...
+                   1, 0.01*sqrt(K), 0.01];
     case 'LastFm360K_2K'
         MaxItr = 1200;
-        Ks = [20];
-        topK = [5, 10, 15, 20];
     case 'ML100KPos'
         MaxItr = 1200;
-        Ks = [20];
-        topK = [5, 10, 15, 20];
-end
-    
-if strcmp(DATA, 'MovieLens100K') || strcmp(DATA, 'MovieLens1M') || strcmp(DATA, 'ML100KPos')
-	matPrecNRecall = zeros(NUM_RUNS*length(Ks), length(topK)*8);
-else
-    matPrecNRecall = zeros(NUM_RUNS*length(Ks), length(topK)*6);
 end
 
 
+%
+% Create Recording Container
+% -------------------------------------------------------------------------
+matPrecNRecall = zeros(NUM_RUNS*length(Ks), length(topK)*8);
 
-%% Load Data
-if strcmp(ENV, 'Linux')
-    env_path = '/home/ian/Dataset/';
-else
-    env_path = '/Users/iankuoli/Dataset/';
-end
 
-switch DATA
-    case 'SmallToy'
-        [ M, N ] = LoadUtilities(strcat(env_path, 'SmallToy_train.csv'), strcat(env_path, 'SmallToy_test.csv'), strcat(env_path, 'SmallToy_valid.csv'));
-    case 'SmallToyML'
-        [ M, N ] = LoadUtilities(strcat(env_path, 'SmallToyML_train.csv'), strcat(env_path, 'SmallToyML_test.csv'), strcat(env_path, 'SmallToyML_valid.csv'));
-    case 'ML50'
-        [ M, N ] = LoadUtilities(strcat(env_path, 'ML50_train.csv'), strcat(env_path, 'ML50_test.csv'), strcat(env_path, 'ML50_test.csv'));
-    case 'MovieLens100K'
-        [ M, N ] = LoadUtilities(strcat(env_path, 'MovieLens100K_train_v2.csv'), strcat(env_path, 'MovieLens100K_test_v2.csv'), strcat(env_path, 'MovieLens100K_valid_v2.csv'));
-    case 'MovieLens1M'
-        [ M, N ] = LoadUtilities(strcat(env_path, 'MovieLens1M_train.csv'), strcat(env_path, 'MovieLens1M_test.csv'), strcat(env_path, 'MovieLens1M_valid.csv'));
-    case 'LastFm2K'
-        [ M, N ] = LoadUtilities(strcat(env_path, 'LastFm2K_train.csv'), strcat(env_path, 'LastFm2K_test.csv'), strcat(env_path, 'LastFm2K_valid.csv'));
-    case 'LastFm1K'
-        [ M, N ] = LoadUtilities(strcat(env_path, 'LastFm1K_train.csv'), strcat(env_path, 'LastFm1K_test.csv'), strcat(env_path, 'LastFm1K_valid.csv'));
-    case 'LastFm360K_2K'
-        [ M, N ] = LoadUtilities(strcat(env_path, 'LastFm360K_2K_train.csv'), strcat(env_path, 'LastFm360K_2K_test.csv'), strcat(env_path, 'LastFm360K_2K_valid.csv'));
-    case 'LastFm360K'
-        [ M, N ] = LoadUtilities(strcat(env_path, 'LastFm360K_train.csv'), strcat(env_path, 'LastFm360K_test.csv'), strcat(env_path, 'LastFm360K_valid.csv'));
-    case 'ML100KPos'
-        [ M, N ] = LoadUtilities(strcat(env_path, 'ml-100k/movielens-100k-train_original.txt'), strcat(env_path, 'ml-100k/movielens-100k-test_original.txt'), strcat(env_path, 'ml-100k/movielens-100k-test_original.txt'));
-%         matX_train(matX_train < 4) = 0;
-%         matX_train(matX_train > 3.99) = 5;
-%         matX_test(matX_test < 4) = 0;
-%         matX_test(matX_test > 3.99) = 5;
-%         matX_valid(matX_valid < 4) = 0;
-%         matX_valid(matX_valid > 3.99) = 5;
-end
-
-if max(max(matX_train)) == 10
-    matX_train = matX_train / 2;
-    matX_test = matX_test / 2;
-    matX_valid = matX_valid / 2;
-end
-
+%
+% Load Data
+% -------------------------------------------------------------------------
+LoadData(DATA, ENV);
 usr_zeros = sum(matX_train, 2)==0;
 itm_zeros = sum(matX_train, 1)==0;
 
@@ -231,9 +203,10 @@ for kk = 1:length(Ks)
         
         itr = 0;
         IsConverge = false;
-        while IsConverge == false
+        total_time = 0;
+        while IsConverge == false    
             itr = itr + 1;
-            fprintf('Itr: %d  K = %d  ==> ', itr, K);
+            fprintf('Run: %d , Itr: %d  K = %d  ==> ', num, itr, K);
 
             % Sample usr_idx, itm_idx
             [usr_idx, itm_idx, usr_idx_len, itm_idx_len] = sampleData_userwise(usr_batch_size);
@@ -245,6 +218,8 @@ for kk = 1:length(Ks)
             %% Train generator G
             %
             % Train generator G given samples and their scores evluated by D
+            t = cputime;
+            
             t_i = 0.5;
             t_j = 0.5;
             tau_i = 0.5;
@@ -252,15 +227,17 @@ for kk = 1:length(Ks)
             c_param = -1;
             kappa = 1 / (1.01-1);  % inverse Gamma
             
-            sample_size = 100000;
-            usr_smpl_idx = full(randsample(usr_idx, min(sample_size, length(is_X_train)), true));
-            itm_smpl_idx = full(randsample(itm_idx, min(sample_size, length(is_X_train)), true));
+            sample_size = floor(0.1 * usr_idx_len * itm_idx_len);
+            usr_smpl_idx = full(randsample(usr_idx, sample_size, true))';
+            itm_smpl_idx = full(randsample(itm_idx, sample_size, true))';
             smpl_val = full(matX_train((itm_smpl_idx-1)*M+usr_smpl_idx));
             
             matSample_ijv = [usr_smpl_idx itm_smpl_idx smpl_val];
             
             
             Learn_CCPF_HPF_SVI(t_i, t_j, tau_i, tau_j, c_param, kappa, matSample_ijv);
+            
+            total_time = total_time + (cputime - t);
             
 
             %% Validation & Testing
@@ -336,32 +313,22 @@ for kk = 1:length(Ks)
                 IsConverge = true;
             end
         end
-        
         Best_matTheta = G_matTheta;
         Best_matBeta = G_matBeta;
-        if strcmp(DATA, 'MovieLens100K') || strcmp(DATA, 'MovieLens1M') || strcmp(DATA, 'ML100KPos')
-            [total_test_precision, total_test_recall, total_test_nDCG, total_test_MRR] = Evaluate_ALL(matX_test(usr_idx,:)+matX_valid(usr_idx,:), matX_train(usr_idx,:), Best_matTheta(usr_idx,:), Best_matBeta, topK);
-            fprintf('testing nDCG: %f\n', total_test_nDCG);
-        else
-            [total_test_precision, total_test_recall, total_test_MRR] = Evaluate_PrecNRec(matX_test(usr_idx,:)+matX_valid(usr_idx,:), matX_train(usr_idx,:), Best_matTheta(usr_idx,:), Best_matBeta, topK);
-        end
-        fprintf('total testing precision: %f\n', total_test_precision);
-        fprintf('total testing recall: %f\n', total_test_recall);
-         
-         
-        if strcmp(DATA, 'MovieLens100K') || strcmp(DATA, 'MovieLens1M') || strcmp(DATA, 'ML100KPos')
-            matPrecNRecall((kk-1)*NUM_RUNS+num,1:length(topK)*4) = [total_test_precision total_test_recall total_test_MRR total_test_nDCG];
-            matPrecNRecall((kk-1)*NUM_RUNS+num,length(topK)*4+1:end) = [valid_precision(end,:) valid_recall(end,:) valid_MRR(end,:) valid_nDCG(end,:)];
-        else
-            matPrecNRecall((kk-1)*NUM_RUNS+num,1:length(topK)*3) = [total_test_precision total_test_recall total_test_MRR];
-            matPrecNRecall((kk-1)*NUM_RUNS+num,length(topK)*3+1:end) = [valid_precision(end,:) valid_recall(end,:) valid_MRR(end,:)];
-        end
         
+        [total_test_precision, total_test_recall, total_test_nDCG, total_test_MRR] = Validation('testing', DATA, Best_matTheta, Best_matBeta, ...
+                                                                                                topK, usr_idx, usr_idx_len, itm_idx_len);
+          
+        % Record the experimental result
+        matPrecNRecall((kk-1)*NUM_RUNS+num,1:length(topK)*4) = [total_test_precision total_test_recall total_test_nDCG total_test_MRR];
+        matPrecNRecall((kk-1)*NUM_RUNS+num,length(topK)*4+1:end) = [valid_precision(end,:) valid_recall(end,:) valid_nDCG(end,:) valid_MRR(end,:)];
+        
+        fprintf('%s: MaxItr / Itr = %d / %d\n', MODEL, MaxItr, itr);
+        fprintf('Computing time per epoch : %f sec\n\n', total_time / itr);    
+        
+        save matPrecNRecall
     end
 end
-
-
-save matPrecNRecall
 
 
 

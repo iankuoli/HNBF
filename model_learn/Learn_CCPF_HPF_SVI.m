@@ -109,14 +109,13 @@ function [] = Learn_CCPF_HPF_SVI(t_i, t_j, tau_i, tau_j, c_param, kappa, matSamp
         ddd = find(isnan(sum(q_prob,2)));
     end
     q_prob = q_prob + 1e-30;
-    aaaaa = q_prob;
-    q_prob = q_prob ./ sum(q_prob,2);
+    q_prob = bsxfun(@times, q_prob, 1./sum(q_prob,2));
     if sum(sum(isnan(q_prob)))>0
         ddd = find(isnan(sum(q_prob,2)));
     end
     q_prob(isnan(q_prob)) = 0;
     q_prob = q_prob + 1e-30;
-    q_prob = q_prob ./ sum(q_prob,2);
+    q_prob = bsxfun(@times, q_prob, 1./sum(q_prob,2));
     E_n_ij(nonzero_idx) = q_prob * range';
     
     tmpXX = sparse(matSample_ijv(:,1), matSample_ijv(:,2), ones(length(matSample_ijv(:,1)),1), M, N);
@@ -156,6 +155,9 @@ function [] = Learn_CCPF_HPF_SVI(t_i, t_j, tau_i, tau_j, c_param, kappa, matSamp
     G_prior(8) = a_pi / b_pi * sqrt(mean(E_n_ij)/K);
     
     if sum(sum(isnan(G_matGamma)))>0
+        aaaa = 1;
+    end
+    if sum(sum(isnan(G_matDelta)))>0
         aaaa = 1;
     end
 end
